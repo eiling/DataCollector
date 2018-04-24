@@ -1,43 +1,49 @@
 package datacollector;
 
-import javax.swing.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 class Handler{
-    private DataQueue dataQueue;
+    private final DataCollector dataCollector;
+    private final DataQueue dataQueue;
 
-    private JTextArea out;
+    private boolean active;
 
-    private Connection connection;
+    private static Connection connection;
 
-    private String hostName = "host.database.windows.net";
-    private String dbName = "db";
-    private String user = "user";
-    private String password = "password";
-    private String url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
+    private static String hostName = "host.database.windows.net";
+    private static String dbName = "db";
+    private static String user = "user";
+    private static String password = "password";
+    private static String url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
                     "encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30;",
             hostName, dbName, user, password);
 
-    Handler(DataQueue q, JTextArea o){
-        dataQueue = q;
-        out = o;
-
-        loop();
+    Handler(DataCollector dataCollector){
+        this.dataCollector = dataCollector;
+        dataQueue = dataCollector.getQueue();
+        active = true;
     }
-    private void connect(){
+    static void connect(){
         try {
             connection = DriverManager.getConnection(url);
         } catch (SQLException e){
             e.printStackTrace();
-            out.append(e.getMessage());
+            System.out.append(e.getMessage());
             System.out.println("Connection error.");
         }
     }
-    private void loop(){
-        while(true){
+    static void disconnect(){
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    void start(){
+        while(dataCollector.isActive()){
             while(dataQueue.ready()){
                 try{
                     if(connection==null || connection.isClosed()) connect();
@@ -47,15 +53,13 @@ class Handler{
 
                 try{
                     Statement st = connection.createStatement();
-                    st.executeUpdate("INSERT INTO temp (codProduto, temp, peak, valey, hr, dt) " +
+                    st.executeUpdate("INSERT INTO temp (origin, temperature, ttime, tdate) " +
                             "VALUES ("
                             + "'" + dataQueue.getID() + "',"
-                            + dataQueue.getAverage() + ","
-                            + dataQueue.getMax() + ","
-                            + dataQueue.getMin() + ","
-                            + "'" + dataQueue.getTime() + "'," //end time of the 5 min interval
+                            + dataQueue.getTemperature() + ","
+                            + "'" + dataQueue.getTime() + "',"
                             + "'" + dataQueue.getDate() + "'" + ")");
-                    out.append("Successful Update! Time: " + dataQueue.getTime() + "\n");
+                    System.out.append("Successful Update! Time: " + dataQueue.getTime() + "\n");
 
                     dataQueue.remove();
                 } catch(SQLException e){
@@ -66,5 +70,10 @@ class Handler{
 
             try{ Thread.sleep(1000);} catch(InterruptedException ignored){}
         }
+
+        active = false;
+    }
+    boolean isActive(){
+        return active;
     }
 }

@@ -1,83 +1,63 @@
 package datacollector;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
-public class DataQueue{
+class DataQueue{
     private Node first;
     private Node last;
 
-    public DataQueue(){
+    DataQueue(){
         first = null;
         last = null;
     }
-    public void add(){
+    void add(float temperature, String id, LocalTime time, LocalDate date){
         if(first == null){
-            first = new Node();
+            first = new Node(temperature, id, time, date);
             last = first;
         } else{
-            last.next = new Node();
+            last.next = new Node(temperature, id, time, date);
             last = last.next;
         }
     }
-    public void addToSum(float temp){
-        last.sum += temp;
-        last.n++;
+
+    float getTemperature(){
+        return first.temperature;
     }
-    public void setID(String id){
-        last.id = id;
-    }
-    public void setMax(float max){
-        last.max = max;
-    }
-    public void setMin(float min){
-        last.min = min;
-    }
-    public void setTime(LocalTime time){
-        last.time = time;
-    }
-    public void setDate(long date){
-        last.date = date;
-    }
-    public String getID(){
+    String getID(){
         return first.id;
     }
-    public float getAverage(){
-        return first.sum / first.n;
-    }
-    public float getMax(){
-        return first.max;
-    }
-    public float getMin(){
-        return first.min;
-    }
-    public LocalTime getTime(){
+    LocalTime getTime(){
         return first.time;
     }
-    public Date getDate(){
-        return new Date(first.date);
+    LocalDate getDate(){
+        return first.date;
     }
-    public void remove(){
+
+    void remove(){
         first = first.next;
     }
-    public boolean ready(){
+
+    boolean ready(){
+        if(first == null) return false;
         return first.next != null;
     }
 
     private class Node{
+        private float temperature;
         private String id;
-        private float sum;
-        private int n;
-        private float max;
-        private float min;
         private LocalTime time;
-        private long date;
+        private LocalDate date;
 
         private Node next;
 
-        private Node(){
-            this.sum = 0;
-            this.n = 0;
+        private Node(float temperature, String id, LocalTime time, LocalDate date){
+            this.temperature = temperature;
+            this.id = id;
+            this.time = time;
+            this.date = date;
+
             next = null;
         }
     }
