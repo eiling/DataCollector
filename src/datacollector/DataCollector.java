@@ -53,7 +53,7 @@ public class DataCollector implements SerialPortEventListener{
                     }
                 }
             } catch(IOException e){
-                terminate();
+                deactivate();
             }
         }
     }
@@ -115,7 +115,9 @@ public class DataCollector implements SerialPortEventListener{
             currentDateTime = currentDateTime.plusSeconds(5);
         }
     }
-    private void terminate(){
+    void deactivate(){
+        if(!active) return;
+
         serialPort.removeEventListener();
         serialPort.close();
 

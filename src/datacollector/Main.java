@@ -1,29 +1,45 @@
 package datacollector;
 
+import java.util.Scanner;
+
 public class Main {
+    private static final int N = 1;
+
     public static void main(String[] args){
         System.out.println("start - " + Thread.activeCount());
 
-        DataQueue[] dataQueues = new DataQueue[10];
+        Scanner in = new Scanner(System.in);
+        System.out.print("Host Name: ");
+        String hostName = in.nextLine();
+        System.out.print("Database Name: ");
+        String dbName = in.nextLine();
+        System.out.print("User: ");
+        String user = in.nextLine();
+        System.out.print("Password: ");
+        String password = in.nextLine();
+        in.close();
+        Handler.setUrl(hostName, dbName, user, password);
+        Handler.connect();
+
+        DataQueue[] dataQueues = new DataQueue[N];
         dataQueues[0] = new DataQueue();
 
-        String[] portIDs = new String[10];
+        String[] portIDs = new String[N];
         portIDs[0] = "/dev/ttyACM0";
 
-        DataCollector[] dataCollectors = new DataCollector[10];
+        DataCollector[] dataCollectors = new DataCollector[N];
         dataCollectors[0] = new DataCollector(portIDs[0], dataQueues[0]);
 
-        new Thread(() -> dataCollectors[0].setupPort()).start();
-        System.out.println("setup port - " + Thread.activeCount());
-
-        Handler.connect();
-        Handler[] handlers = new Handler[10];
+        Handler[] handlers = new Handler[N];
         handlers[0] = new Handler(dataCollectors[0]);
 
-        new Thread(() -> handlers[0].start()).start();
-        System.out.println("start handler - " + Thread.activeCount());
+        new Thread(() -> {
+            dataCollectors[0].setupPort();
+            handlers[0].start();
+        }).start();
+        System.out.println("setup/start - " + Thread.activeCount());
 
-        while (allHandlersAreActive(handlers)){
+        while (handlersAreActive(handlers)){
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -37,10 +53,10 @@ public class Main {
         System.out.println("end - " + Thread.activeCount());
     }
 
-    private static boolean allHandlersAreActive(Handler[] handlers){
+    private static boolean handlersAreActive(Handler[] handlers){
         for(Handler handler : handlers){
-            if(handler != null && !handler.isActive()) return false;
+            if(handler != null && handler.isActive()) return true;
         }
-        return true;
+        return false;
     }
 }

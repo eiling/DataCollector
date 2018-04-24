@@ -43,6 +43,9 @@ class DataQueue{
         if(first == null) return false;
         return first.next != null;
     }
+    boolean hasElements(){
+        return first != null;
+    }
 
     private class Node{
         private float temperature;
