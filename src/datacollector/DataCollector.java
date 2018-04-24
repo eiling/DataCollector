@@ -58,7 +58,6 @@ public class DataCollector implements SerialPortEventListener{
         }
     }
     void setupPort(){
-        //open the port
         while(serialPort == null){
             CommPortIdentifier portIdentifier = null;
             Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
@@ -78,12 +77,7 @@ public class DataCollector implements SerialPortEventListener{
                 e.printStackTrace();
             }
 
-            if (serialPort == null){
-                try{
-                    Thread.sleep(500);
-                } catch(InterruptedException ignored){
-                }
-            }
+            if (serialPort == null) try{ Thread.sleep(500); } catch(InterruptedException ignored){}
         }
 
         //setup parameters
@@ -133,5 +127,8 @@ public class DataCollector implements SerialPortEventListener{
 
     boolean isActive() {
         return active;
+    }
+    public void shutdown(){
+        active = false;
     }
 }

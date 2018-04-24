@@ -13,10 +13,10 @@ class Handler{
 
     private static Connection connection;
 
-    private static String hostName = "host.database.windows.net";
-    private static String dbName = "db";
-    private static String user = "user";
-    private static String password = "password";
+    private static String hostName = "eiling.database.windows.net";
+    private static String dbName = "lily";
+    private static String user = "eiling";
+    private static String password = "$senha123";
     private static String url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
                     "encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30;",
             hostName, dbName, user, password);
@@ -68,7 +68,7 @@ class Handler{
                 }
             }
 
-            try{ Thread.sleep(1000);} catch(InterruptedException ignored){}
+            try{ Thread.sleep(100);} catch(InterruptedException ignored){}
         }
 
         active = false;
