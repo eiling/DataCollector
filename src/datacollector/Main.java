@@ -3,60 +3,73 @@ package datacollector;
 import java.util.Scanner;
 
 public class Main {
-    private static final int N = 1;
-
     public static void main(String[] args){
-        System.out.println("start - " + Thread.activeCount());
-
         Scanner in = new Scanner(System.in);
-        System.out.print("Host Name: ");
-        String hostName = in.nextLine();
-        System.out.print("Database Name: ");
-        String dbName = in.nextLine();
-        System.out.print("User: ");
-        String user = in.nextLine();
-        System.out.print("Password: ");
-        String password = in.nextLine();
-        in.close();
-        Handler.setUrl(hostName, dbName, user, password);
-        Handler.connect();
 
-        DataQueue[] dataQueues = new DataQueue[N];
-        dataQueues[0] = new DataQueue();
+        System.out.println("Enter port names separated by space:");
+        String ports = in.nextLine();
 
-        String[] portIDs = new String[N];
-        portIDs[0] = "/dev/ttyACM0";
+        String[] portIDs = ports.split(" ");
 
-        DataCollector[] dataCollectors = new DataCollector[N];
-        dataCollectors[0] = new DataCollector(portIDs[0], dataQueues[0]);
+        DataQueue dataQueue = new DataQueue();
 
-        Handler[] handlers = new Handler[N];
-        handlers[0] = new Handler(dataCollectors[0]);
+        DataCollector[] dataCollectors = new DataCollector[portIDs.length];
 
-        new Thread(() -> {
-            dataCollectors[0].setupPort();
-            handlers[0].start();
-        }).start();
-        System.out.println("setup/start - " + Thread.activeCount());
-
-        while (handlersAreActive(handlers)){
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        boolean running = true;
+        while(running){
+            for(int i = 0; i < dataCollectors.length; i++){
+                dataCollectors[i] = new DataCollector(portIDs[i], dataQueue);
             }
-            System.out.println("loop - " + Thread.activeCount());
-            dataCollectors[0].shutdown(); //for test only; remove this method later
-        }
 
-        Handler.disconnect();
-        System.out.println("end - " + Thread.activeCount());
-    }
+            Handler handler = new Handler(dataCollectors, dataQueue);
 
-    private static boolean handlersAreActive(Handler[] handlers){
-        for(Handler handler : handlers){
-            if(handler != null && handler.isActive()) return true;
+            System.out.print("Host Name: ");
+            String hostName = in.nextLine();
+            System.out.print("Database Name: ");
+            String dbName = in.nextLine();
+            System.out.print("User: ");
+            String user = in.nextLine();
+            System.out.print("Password: ");
+            String password = in.nextLine();
+
+            handler.setUrl(hostName, dbName, user, password);
+            while(!handler.connect()){
+                System.out.println("Connection failed");
+                System.out.print("Host Name: ");
+                hostName = in.nextLine();
+                System.out.print("Database Name: ");
+                dbName = in.nextLine();
+                System.out.print("User: ");
+                user = in.nextLine();
+                System.out.print("Password: ");
+                password = in.nextLine();
+
+                in.close();
+
+                handler.setUrl(hostName, dbName, user, password);
+            }
+
+            new Thread(handler::start).start();
+
+            while(handler.isActive()){
+                try{
+                    Thread.sleep(1000);
+                } catch(InterruptedException ignored){
+                }
+            }
+
+            System.out.print("All devices disconnected. Stop? (y/n): ");
+            in = new Scanner(System.in);
+            String answer = in.nextLine();
+            while(!answer.equalsIgnoreCase("y") || !answer.equalsIgnoreCase("n")){
+                System.out.print("All devices disconnected. Stop? (y/n): ");
+                answer = in.nextLine();
+            }
+            in.close();
+            if(answer.equalsIgnoreCase("y")){
+                handler.disconnect();
+                running = false;
+            }
         }
-        return false;
     }
 }

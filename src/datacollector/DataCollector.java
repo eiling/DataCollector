@@ -2,6 +2,8 @@ package datacollector;
 
 import gnu.io.*;
 
+import javafx.scene.control.Label;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -24,6 +26,8 @@ public class DataCollector implements SerialPortEventListener{
 
     private boolean active;
 
+    //private Label lastTemperature = new Label("Last read: ");
+
     DataCollector(String portID, DataQueue dataQueue){
         active = true;
 
@@ -32,11 +36,14 @@ public class DataCollector implements SerialPortEventListener{
 
        this.dataQueue = dataQueue;
 
-        currentDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        currentDateTime = currentDateTime.plusSeconds(5 - (currentDateTime.getSecond() % 5));
-
         //magic line to make ACM work
         System.setProperty("gnu.io.rxtx.SerialPorts", portID);
+
+        setupPort();
+
+        //set current target time
+        currentDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        currentDateTime = currentDateTime.plusSeconds(5 - (currentDateTime.getSecond() % 5));
     }
     @Override
     public void serialEvent(SerialPortEvent serialPortEvent){
@@ -57,8 +64,12 @@ public class DataCollector implements SerialPortEventListener{
             }
         }
     }
-    void setupPort(){
+    private void setupPort(){
+        //lastTemperature.setText("Trying to connect to " + portID);
+
         while(serialPort == null){
+            if(!active) return;
+
             CommPortIdentifier portIdentifier = null;
             Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
             while (portEnum.hasMoreElements()) {
@@ -112,25 +123,28 @@ public class DataCollector implements SerialPortEventListener{
         if(now.isAfter(currentDateTime) && now.isBefore(currentDateTime.plusSeconds(1))){
             dataQueue.add(temperature, portID, currentDateTime.toLocalTime(), currentDateTime.toLocalDate());
 
+            //lastTemperature.setText("Last read: " + temperature + "(" + currentDateTime + ")");
+
             currentDateTime = currentDateTime.plusSeconds(5);
         }
     }
-    void deactivate(){
-        if(!active) return;
-
-        serialPort.removeEventListener();
-        serialPort.close();
+    private void deactivate(){
+        if(serialPort != null){
+            serialPort.removeEventListener();
+            serialPort.close();
+        }
 
         active = false;
-    }
-    DataQueue getQueue(){
-        return dataQueue;
     }
 
     boolean isActive() {
         return active;
     }
-    public void shutdown(){
-        active = false;
+
+    /*Label getLastTemperature(){
+        return lastTemperature;
+    }*/
+    String getPortID(){
+        return portID;
     }
 }
