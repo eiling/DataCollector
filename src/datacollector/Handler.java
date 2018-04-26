@@ -14,6 +14,8 @@ class Handler{
     private boolean active;
     private boolean done;
 
+    private boolean[] lastStatus;
+
     //private Label lastUpdate = new Label("Last updated: ");
 
     private String url;
@@ -24,6 +26,9 @@ class Handler{
         this.dataQueue = dataQueue;
         active = true;
         done = true;
+
+        lastStatus = new boolean[dataCollectors.length];
+        for(int i = 0; i < lastStatus.length; i++) lastStatus[i] = false;
     }
     void setUrl(String hostName, String dbName, String user, String password){
         url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
@@ -58,7 +63,7 @@ class Handler{
                 handleData();
             }
 
-            try{ Thread.sleep(2500);} catch(InterruptedException ignored){}
+            try{ Thread.sleep(100);} catch(InterruptedException ignored){}
         }
 
         while(dataQueue.hasElements()){
@@ -105,10 +110,12 @@ class Handler{
 
     private void checkDataCollectors(){
         for(int i = 0; i < dataCollectors.length; i++){
-            if(dataCollectors[i].isActive()){
+            final boolean current = dataCollectors[i].isActive();
+            if(current && !lastStatus[i]){
                 updateStatus(dataCollectors[i].getPortID(), 1);
+                lastStatus[i] = true;
             }
-            else{
+            else if(!current && lastStatus[i]){
                 if(!dataCollectors[i].isSettingUp()){
                     System.out.println("New thread to set up " + dataCollectors[i].getPortID());
 
@@ -116,6 +123,7 @@ class Handler{
                     new Thread(dataCollectors[i]::setup).start();
                 }
                 updateStatus(dataCollectors[i].getPortID(), 0);
+                lastStatus[i] = false;
             }
         }
     }
