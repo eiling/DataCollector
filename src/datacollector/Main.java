@@ -15,61 +15,49 @@ public class Main {
 
         DataCollector[] dataCollectors = new DataCollector[portIDs.length];
 
-        boolean running = true;
-        while(running){
-            for(int i = 0; i < dataCollectors.length; i++){
-                dataCollectors[i] = new DataCollector(portIDs[i], dataQueue);
-            }
+        for(int i = 0; i < dataCollectors.length; i++){
+            dataCollectors[i] = new DataCollector(portIDs[i], dataQueue);
+            dataCollectors[i].setup();
+        }
 
-            Handler handler = new Handler(dataCollectors, dataQueue);
+        Handler handler = new Handler(dataCollectors, dataQueue);
 
+        System.out.print("Host Name: ");
+        String hostName = in.nextLine();
+        System.out.print("Database Name: ");
+        String dbName = in.nextLine();
+        System.out.print("User: ");
+        String user = in.nextLine();
+        System.out.print("Password: ");
+        String password = in.nextLine();
+
+        handler.setUrl(hostName, dbName, user, password);
+        while(!handler.connect()){
+            System.out.println("Connection failed");
             System.out.print("Host Name: ");
-            String hostName = in.nextLine();
+            hostName = in.nextLine();
             System.out.print("Database Name: ");
-            String dbName = in.nextLine();
+            dbName = in.nextLine();
             System.out.print("User: ");
-            String user = in.nextLine();
+            user = in.nextLine();
             System.out.print("Password: ");
-            String password = in.nextLine();
+            password = in.nextLine();
 
             handler.setUrl(hostName, dbName, user, password);
-            while(!handler.connect()){
-                System.out.println("Connection failed");
-                System.out.print("Host Name: ");
-                hostName = in.nextLine();
-                System.out.print("Database Name: ");
-                dbName = in.nextLine();
-                System.out.print("User: ");
-                user = in.nextLine();
-                System.out.print("Password: ");
-                password = in.nextLine();
-
-                in.close();
-
-                handler.setUrl(hostName, dbName, user, password);
-            }
-
-            new Thread(handler::start).start();
-
-            while(handler.isActive()){
-                try{
-                    Thread.sleep(1000);
-                } catch(InterruptedException ignored){
-                }
-            }
-
-            System.out.print("All devices disconnected. Stop? (y/n): ");
-            in = new Scanner(System.in);
-            String answer = in.nextLine();
-            while(!answer.equalsIgnoreCase("y") || !answer.equalsIgnoreCase("n")){
-                System.out.print("All devices disconnected. Stop? (y/n): ");
-                answer = in.nextLine();
-            }
-            in.close();
-            if(answer.equalsIgnoreCase("y")){
-                handler.disconnect();
-                running = false;
-            }
         }
+
+        new Thread(handler::start).start();
+
+        in.nextLine();
+
+        handler.deactivate();
+
+        for(DataCollector dataCollector : dataCollectors) dataCollector.deactivate();
+
+        while(!handler.isDone()) try{ Thread.sleep(100); } catch(InterruptedException ignored){}
+
+        in.close();
+
+        handler.disconnect();
     }
 }

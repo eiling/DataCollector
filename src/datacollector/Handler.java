@@ -12,6 +12,7 @@ class Handler{
     private final DataQueue dataQueue;
 
     private boolean active;
+    private boolean done;
 
     //private Label lastUpdate = new Label("Last updated: ");
 
@@ -22,6 +23,7 @@ class Handler{
         this.dataCollectors = dataCollectors;
         this.dataQueue = dataQueue;
         active = true;
+        done = true;
     }
     void setUrl(String hostName, String dbName, String user, String password){
         url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
@@ -47,19 +49,23 @@ class Handler{
         }
     }
     void start(){
-        while(aDataCollectorIsActive()){
+        done = false;
+
+        while(active){
+            checkDataCollectors();
+
             while(dataQueue.hasElements()){
                 handleData();
             }
 
-            try{ Thread.sleep(100);} catch(InterruptedException ignored){}
+            try{ Thread.sleep(2500);} catch(InterruptedException ignored){}
         }
 
         while(dataQueue.hasElements()){
             handleData();
         }
 
-        active = false;
+        done = true;
     }
 
     private void handleData() {
@@ -90,26 +96,28 @@ class Handler{
         }
     }
 
-    boolean isActive(){
-        return active;
+    boolean isDone(){
+        return done;
+    }
+    void deactivate(){
+        active = false;
     }
 
-    private boolean aDataCollectorIsActive(){
-        boolean aDataCollectorIsActive = false;
+    private void checkDataCollectors(){
         for(int i = 0; i < dataCollectors.length; i++){
             if(dataCollectors[i].isActive()){
-                aDataCollectorIsActive = true;
                 updateStatus(dataCollectors[i].getPortID(), 1);
             }
             else{
-                final int index = i;
-                new Thread(
-                        () -> dataCollectors[index] = new DataCollector(dataCollectors[index].getPortID(), dataQueue)
-                ).start();
+                if(!dataCollectors[i].isSettingUp()){
+                    System.out.println("New thread to set up " + dataCollectors[i].getPortID());
+
+                    dataCollectors[i] = new DataCollector(dataCollectors[i].getPortID(), dataQueue);
+                    new Thread(dataCollectors[i]::setup).start();
+                }
                 updateStatus(dataCollectors[i].getPortID(), 0);
             }
         }
-        return aDataCollectorIsActive;
     }
 
     private void updateStatus(String portID, int active){
@@ -119,7 +127,7 @@ class Handler{
 
         try{
             Statement st = connection.createStatement();
-            st.executeUpdate("UPDATE produto SET active=" + (active == 1 ? 1 : 0) + " WHERE portid='" + portID + "'");
+            st.executeUpdate("UPDATE produto SET status=" + (active == 1 ? 1 : 0) + " WHERE portid='" + portID + "'");
             System.out.println("Successful Update! " + portID + " now " + (active == 1 ? "active" : "inactive"));
         } catch(SQLException e){
             System.out.println(e.getMessage());

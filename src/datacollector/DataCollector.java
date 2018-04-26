@@ -25,17 +25,20 @@ public class DataCollector implements SerialPortEventListener{
     private LocalDateTime currentDateTime;
 
     private boolean active;
+    private boolean settingUp;
 
     //private Label lastTemperature = new Label("Last read: ");
 
     DataCollector(String portID, DataQueue dataQueue){
-        active = true;
+        active = false;
+        settingUp = true;
 
         this.portID = portID;
         stringBuilder = new StringBuilder();
 
        this.dataQueue = dataQueue;
-
+    }
+    void setup(){
         //magic line to make ACM work
         System.setProperty("gnu.io.rxtx.SerialPorts", portID);
 
@@ -44,6 +47,9 @@ public class DataCollector implements SerialPortEventListener{
         //set current target time
         currentDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         currentDateTime = currentDateTime.plusSeconds(5 - (currentDateTime.getSecond() % 5));
+
+        active = true;
+        settingUp = false;
     }
     @Override
     public void serialEvent(SerialPortEvent serialPortEvent){
@@ -68,7 +74,7 @@ public class DataCollector implements SerialPortEventListener{
         //lastTemperature.setText("Trying to connect to " + portID);
 
         while(serialPort == null){
-            if(!active) return;
+            if(!settingUp) return;
 
             CommPortIdentifier portIdentifier = null;
             Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
@@ -128,17 +134,21 @@ public class DataCollector implements SerialPortEventListener{
             currentDateTime = currentDateTime.plusSeconds(5);
         }
     }
-    private void deactivate(){
+    void deactivate(){
         if(serialPort != null){
             serialPort.removeEventListener();
             serialPort.close();
         }
 
         active = false;
+        settingUp = false;
     }
 
     boolean isActive() {
         return active;
+    }
+    boolean isSettingUp(){
+        return settingUp;
     }
 
     /*Label getLastTemperature(){
