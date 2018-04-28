@@ -14,8 +14,6 @@ class Handler{
     private boolean active;
     private boolean done;
 
-    private boolean[] lastStatus;
-
     //private Label lastUpdate = new Label("Last updated: ");
 
     private String url;
@@ -26,9 +24,6 @@ class Handler{
         this.dataQueue = dataQueue;
         active = true;
         done = true;
-
-        lastStatus = new boolean[dataCollectors.length];
-        for(int i = 0; i < lastStatus.length; i++) lastStatus[i] = false;
     }
     void setUrl(String hostName, String dbName, String user, String password){
         url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
@@ -57,7 +52,14 @@ class Handler{
         done = false;
 
         while(active){
-            checkDataCollectors();
+            for(int i = 0; i < dataCollectors.length; i++){
+                if(!(dataCollectors[i].isActive() || dataCollectors[i].isSettingUp())){
+                    System.out.println("New thread to set up " + dataCollectors[i].getPortID());
+
+                    dataCollectors[i] = new DataCollector(dataCollectors[i].getPortID(), dataQueue);
+                    new Thread(dataCollectors[i]::setup).start();
+                }
+            }
 
             while(dataQueue.hasElements()){
                 handleData();
@@ -76,73 +78,6 @@ class Handler{
     private void handleData() {
         DataQueue.Node temp = dataQueue.getFirst();
 
-        if(temp != null){
-            checkConnection();
-
-            try{
-                Statement st = connection.createStatement();
-                st.executeUpdate("INSERT INTO temperature (portid, temperature, ttime, tdate) " +
-                        "VALUES ("
-                        + "'" + temp.id + "',"
-                        + temp.temperature + ","
-                        + "'" + temp.time + "',"
-                        + "'" + temp.date + "'" + ")");
-                System.out.print("Successful Update! " + temp.id + " - " + temp.time + "\n");
-
-                /*lastUpdate.setText(
-                        "Last updated: " + temp.temperature + "(" + temp.time + ")"
-                );*/
-
-                dataQueue.remove();
-                System.out.println("data deleted");
-            } catch(SQLException e){
-                System.out.println(e.getMessage());
-            }
-        }
-    }
-
-    boolean isDone(){
-        return done;
-    }
-    void deactivate(){
-        active = false;
-    }
-
-    private void checkDataCollectors(){
-        for(int i = 0; i < dataCollectors.length; i++){
-            final boolean current = dataCollectors[i].isActive();
-            if(current && !lastStatus[i]){
-                updateStatus(dataCollectors[i].getPortID(), 1);
-                lastStatus[i] = true;
-            }
-            else if(!current && lastStatus[i]){
-                if(!dataCollectors[i].isSettingUp()){
-                    System.out.println("New thread to set up " + dataCollectors[i].getPortID());
-
-                    dataCollectors[i] = new DataCollector(dataCollectors[i].getPortID(), dataQueue);
-                    new Thread(dataCollectors[i]::setup).start();
-                }
-                updateStatus(dataCollectors[i].getPortID(), 0);
-                lastStatus[i] = false;
-            }
-        }
-    }
-
-    private void updateStatus(String portID, int active){
-        if(active != 1 && active != 0) throw new RuntimeException("Active value must be 1 or 0");
-
-        checkConnection();
-
-        try{
-            Statement st = connection.createStatement();
-            st.executeUpdate("UPDATE produto SET status=" + (active == 1 ? 1 : 0) + " WHERE portid='" + portID + "'");
-            System.out.println("Successful Update! " + portID + " now " + (active == 1 ? "active" : "inactive"));
-        } catch(SQLException e){
-            System.out.println(e.getMessage());
-        }
-    }
-
-    private void checkConnection(){
         try{
             if(connection.isClosed()){
                 System.out.println("Reconnecting.");
@@ -152,6 +87,42 @@ class Handler{
             System.out.println("Connection.isClosed error.");
             System.out.println(e.getMessage());
         }
+
+        try{
+            //gambi para minutos cheios
+            String datetime = temp.datetime.toString();
+            if(datetime.length() != 19) datetime += ":00";
+
+            String temperature = String.format("%.1f", Float.parseFloat(temp.temperature));
+
+            Statement st = connection.createStatement();
+            st.executeUpdate("INSERT INTO reading (datetime, id, temperature) " +
+                    "VALUES ("
+                    + "'" + datetime + "',"
+                    + "'" + temp.id + "',"
+                    + temperature + ")"
+            );
+            System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + datetime);
+
+            /*lastUpdate.setText(
+                    "Last updated: " + temp.temperature + "(" + temp.time + ")"
+            );*/
+
+            dataQueue.remove();
+        } catch(SQLException e){
+            System.out.println(e.getMessage());
+            System.out.println(temp.datetime);
+            done = true;
+            throw new RuntimeException("Something went wrong!");
+        }
+    }
+
+    boolean isDone(){
+        return done;
+    }
+
+    void deactivate(){
+        active = false;
     }
 
     /*Label getLastUpdate(){

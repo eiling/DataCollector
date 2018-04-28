@@ -123,11 +123,10 @@ public class DataCollector implements SerialPortEventListener{
         serialPort.notifyOnDataAvailable(true);
     }
     private void handleData(String line){
-        float temperature = Float.parseFloat(line);
-
         LocalDateTime now = LocalDateTime.now();
         if(now.isAfter(currentDateTime) && now.isBefore(currentDateTime.plusSeconds(1))){
-            dataQueue.add(temperature, portID, currentDateTime.toLocalTime(), currentDateTime.toLocalDate());
+            String[] data = line.split(" ");
+            dataQueue.add(data[1], data[0], currentDateTime);
 
             //lastTemperature.setText("Last read: " + temperature + "(" + currentDateTime + ")");
 

@@ -1,7 +1,6 @@
 package datacollector;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 class DataQueue{
     private final Object lock;
@@ -14,13 +13,13 @@ class DataQueue{
         last = null;
     }
 
-    void add(float temperature, String id, LocalTime time, LocalDate date){
+    void add(String temperature, String id, LocalDateTime datetime){
         synchronized(lock){
             if (first == null){
-                first = new Node(temperature, id, time, date);
+                first = new Node(temperature, id, datetime);
                 last = first;
             } else {
-                last.next = new Node(temperature, id, time, date);
+                last.next = new Node(temperature, id, datetime);
                 last = last.next;
             }
         }
@@ -50,18 +49,16 @@ class DataQueue{
     }
 
     static final class Node{
-        final float temperature;
+        final String temperature;
         final String id;
-        final LocalTime time;
-        final LocalDate date;
+        final LocalDateTime datetime;
 
         private Node next;
 
-        private Node(float temperature, String id, LocalTime time, LocalDate date){
+        private Node(String temperature, String id, LocalDateTime datetime){
             this.temperature = temperature;
             this.id = id;
-            this.time = time;
-            this.date = date;
+            this.datetime = datetime;
 
             next = null;
         }
