@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 
 class Handler{
     private final DataCollector[] dataCollectors;
@@ -27,12 +28,13 @@ class Handler{
     }
     void setUrl(String hostName, String dbName, String user, String password){
         url = String.format("jdbc:sqlserver://%s:1433;database=%s;user=%s;password=%s;" +
-                        "encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30;",
+                        "encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=5;",
                 hostName, dbName, user, password);
     }
     boolean connect(){
         try {
             connection = DriverManager.getConnection(url);
+            connection.setNetworkTimeout(null, 1000);
             return true;
         } catch (SQLException e){
             System.out.println(e.getMessage());
@@ -89,20 +91,28 @@ class Handler{
         }
 
         try{
-            //gambi para minutos cheios
-            String datetime = temp.datetime.toString();
-            if(datetime.length() != 19) datetime += ":00";
+            LocalDateTime datetime = temp.datetime;
+
+            String dtString = String.format("%04d-%02d-%02dT%02d:%02d:%02d",
+                    datetime.getYear(),
+                    datetime.getMonthValue(),
+                    datetime.getDayOfMonth(),
+                    datetime.getHour(),
+                    datetime.getMinute(),
+                    datetime.getSecond()
+            );
 
             String temperature = String.format("%.1f", Float.parseFloat(temp.temperature));
 
             Statement st = connection.createStatement();
+            st.setQueryTimeout(1);
             st.executeUpdate("INSERT INTO reading (datetime, id, temperature) " +
                     "VALUES ("
-                    + "'" + datetime + "',"
+                    + "'" + dtString + "',"
                     + "'" + temp.id + "',"
                     + temperature + ")"
             );
-            System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + datetime);
+            System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + dtString);
 
             /*lastUpdate.setText(
                     "Last updated: " + temp.temperature + "(" + temp.time + ")"
@@ -110,10 +120,8 @@ class Handler{
 
             dataQueue.remove();
         } catch(SQLException e){
-            System.out.println(e.getMessage());
+            System.out.print(e.getMessage() + " || Date: ");
             System.out.println(temp.datetime);
-            done = true;
-            throw new RuntimeException("Something went wrong!");
         }
     }
 
