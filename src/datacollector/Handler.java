@@ -1,7 +1,5 @@
 package datacollector;
 
-import javafx.scene.control.Label;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -14,8 +12,6 @@ class Handler{
 
     private boolean active;
     private boolean done;
-
-    //private Label lastUpdate = new Label("Last updated: ");
 
     private String url;
     private Connection connection;
@@ -114,10 +110,6 @@ class Handler{
             );
             System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + dtString);
 
-            /*lastUpdate.setText(
-                    "Last updated: " + temp.temperature + "(" + temp.time + ")"
-            );*/
-
             dataQueue.remove();
         } catch(SQLException e){
             System.out.print(e.getMessage() + " || Date: ");
@@ -132,8 +124,4 @@ class Handler{
     void deactivate(){
         active = false;
     }
-
-    /*Label getLastUpdate(){
-        return lastUpdate;
-    }*/
 }

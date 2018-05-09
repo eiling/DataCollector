@@ -2,8 +2,6 @@ package datacollector;
 
 import gnu.io.*;
 
-import javafx.scene.control.Label;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -26,8 +24,6 @@ public class DataCollector implements SerialPortEventListener{
 
     private boolean active;
     private boolean settingUp;
-
-    //private Label lastTemperature = new Label("Last read: ");
 
     DataCollector(String portID, DataQueue dataQueue){
         active = false;
@@ -71,8 +67,6 @@ public class DataCollector implements SerialPortEventListener{
         }
     }
     private void setupPort(){
-        //lastTemperature.setText("Trying to connect to " + portID);
-
         while(serialPort == null){
             if(!settingUp) return;
 
@@ -150,9 +144,6 @@ public class DataCollector implements SerialPortEventListener{
         return settingUp;
     }
 
-    /*Label getLastTemperature(){
-        return lastTemperature;
-    }*/
     String getPortID(){
         return portID;
     }
