@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 class Handler{
     private final DataCollector[] dataCollectors;
@@ -87,16 +88,7 @@ class Handler{
         }
 
         try{
-            LocalDateTime datetime = temp.datetime;
-
-            String dtString = String.format("%04d-%02d-%02dT%02d:%02d:%02d",
-                    datetime.getYear(),
-                    datetime.getMonthValue(),
-                    datetime.getDayOfMonth(),
-                    datetime.getHour(),
-                    datetime.getMinute(),
-                    datetime.getSecond()
-            );
+            String datetime = temp.datetime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
             String temperature = String.format("%.1f", Float.parseFloat(temp.temperature));
 
@@ -104,7 +96,7 @@ class Handler{
             st.setQueryTimeout(1);
             st.executeUpdate("INSERT INTO reading (datetime, id, temperature) " +
                     "VALUES ("
-                    + "'" + dtString + "',"
+                    + "'" + datetime + "',"
                     + "'" + temp.id + "',"
                     + temperature + ")"
             );
