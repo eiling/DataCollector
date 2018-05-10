@@ -41,8 +41,9 @@ public class DataCollector implements SerialPortEventListener{
         setupPort();
 
         //set current target time
-        currentDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        currentDateTime = currentDateTime.plusSeconds(5 - (currentDateTime.getSecond() % 5));
+        currentDateTime = LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plusSeconds(5 - (currentDateTime.getSecond() % 5));
 
         active = true;
         settingUp = false;
@@ -122,9 +123,11 @@ public class DataCollector implements SerialPortEventListener{
             String[] data = line.split(" ");
             dataQueue.add(data[1], data[0], currentDateTime);
 
-            //lastTemperature.setText("Last read: " + temperature + "(" + currentDateTime + ")");
-
             currentDateTime = currentDateTime.plusSeconds(5);
+        } else { //reset if something went wrong
+            currentDateTime = LocalDateTime.now()
+                    .truncatedTo(ChronoUnit.SECONDS)
+                    .plusSeconds(5 - (currentDateTime.getSecond() % 5));
         }
     }
     void deactivate(){
