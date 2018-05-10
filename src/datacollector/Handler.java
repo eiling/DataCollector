@@ -100,7 +100,7 @@ class Handler{
                     + "'" + temp.id + "',"
                     + temperature + ")"
             );
-            System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + dtString);
+            System.out.println("Successful Update! " + temp.id + " - " + temperature + " - " + datetime);
 
             dataQueue.remove();
         } catch(SQLException e){
